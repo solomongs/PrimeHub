@@ -1,0 +1,6 @@
+{
+  "name": "PrimeHub HR Portal",
+  "description": "Interactive corporate profile, 12-week HR consulting proposal, recruitment strategy generator, and Nigerian labor compliance calculator for PrimeHub.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
