@@ -14,6 +14,7 @@ import {
   Award
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { saveLead } from '../services/staticData';
 
 export default function ContactView() {
   const [clientName, setClientName] = useState<string>('');
@@ -28,7 +29,7 @@ export default function ContactView() {
   const [apiError, setApiError] = useState<string | null>(null);
   const [blueprint, setBlueprint] = useState<any | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!clientName.trim() || !contactName.trim() || !email.trim()) {
       setApiError("Kindly verify that Company Name, Contact Name, and Work Email are present.");
@@ -37,37 +38,21 @@ export default function ContactView() {
 
     setLoading(true);
     setApiError(null);
+    saveLead({
+      clientName: clientName.trim(),
+      email: email.trim(),
+      targetRoles: serviceNeeded,
+      location: 'Lagos',
+      roleVolume: 1,
+      industry,
+      notes: `Contact Name: ${contactName.trim()}
+Primary Service: ${serviceNeeded}
+Challenges: ${challenges.trim()}`,
+    });
 
-    try {
-      const response = await fetch('/api/leads', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          clientName: clientName.trim(),
-          email: email.trim(),
-          targetRoles: serviceNeeded,
-          location: 'Lagos',
-          roleVolume: 1,
-          industry: industry,
-          notes: `Contact Name: ${contactName.trim()}\nPrimary Service: ${serviceNeeded}\nChallenges: ${challenges.trim()}`
-        }),
-      });
-
-      if (response.ok) {
-        // Generate tailored blueprint
-        const generated = generateTails(clientName, industry, serviceNeeded, contactName);
-        setBlueprint(generated);
-        setSubmitted(true);
-      } else {
-        setApiError("Failed to register your proposal request. Please retry or contact hello@primehubhr.com.ng");
-      }
-    } catch (err) {
-      setApiError("Internal connection error. Please try again.");
-    } finally {
-      setLoading(false);
-    }
+    setBlueprint(generateTails(clientName, industry, serviceNeeded, contactName));
+    setSubmitted(true);
+    setLoading(false);
   };
 
   const generateTails = (firm: string, ind: string, service: string, contact: string) => {
@@ -451,7 +436,7 @@ export default function ContactView() {
 
             <div className="pt-4 border-t border-white/10 text-xs space-y-2.5 text-[#F4F6F9]/60 leading-normal">
               <p className="font-bold text-[#C9A23F] uppercase tracking-wider text-[10px] font-mono">Immediate Assurances</p>
-              <p>✓ All submissions are stored on our encrypted server.</p>
+              <p>✓ Demo submissions are stored only in this browser.</p>
               <p>✓ We respect NDAs prior to any initial discovery call.</p>
             </div>
           </div>

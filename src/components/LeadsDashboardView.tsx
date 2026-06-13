@@ -1,26 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { FileText, Mail, Terminal, Calendar, MapPin, Building, Hash, Code, Trash, CheckCircle2, ShieldAlert, Users, Compass, Globe, Sparkles, RefreshCw, X, ArrowRight } from 'lucide-react';
+import { getLeads, type Lead } from '../services/staticData';
 
-interface Lead {
-  id: string;
-  clientName: string;
-  email: string;
-  targetRoles: string;
-  location: string;
-  roleVolume: number;
-  industry: string;
-  notes?: string;
-  timestamp: string;
-  emailSimulated: {
-    sent: boolean;
-    recipient: string;
-    sender: string;
-    subject: string;
-    body: string;
-    smtpLog: string;
-  };
-}
+
 
 export default function LeadsDashboardView() {
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -28,23 +11,15 @@ export default function LeadsDashboardView() {
   const [loading, setLoading] = useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
 
-  const fetchLeads = async () => {
+  const fetchLeads = () => {
     setIsRefreshing(true);
-    try {
-      const response = await fetch('/api/leads');
-      if (response.ok) {
-        const data = await response.json();
-        setLeads(data.leads || []);
-        if (data.leads && data.leads.length > 0 && !selectedLead) {
-          setSelectedLead(data.leads[0]);
-        }
-      }
-    } catch (err) {
-      console.error("Failed to fetch leads:", err);
-    } finally {
-      setLoading(false);
-      setIsRefreshing(false);
+    const storedLeads = getLeads();
+    setLeads(storedLeads);
+    if (storedLeads.length > 0 && !selectedLead) {
+      setSelectedLead(storedLeads[0]);
     }
+    setLoading(false);
+    setIsRefreshing(false);
   };
 
   useEffect(() => {
@@ -110,12 +85,12 @@ export default function LeadsDashboardView() {
       {/* Editorial Header */}
       <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6">
         <div className="text-left max-w-2xl space-y-3">
-          <span className="text-xs uppercase tracking-widest font-semibold text-[#C9A23F] font-mono">Simulated Support Mail Inbox</span>
+          <span className="text-xs uppercase tracking-widest font-semibold text-[#C9A23F] font-mono">Browser-local Request Inbox</span>
           <h1 className="text-3xl font-bold font-sans text-white tracking-tight leading-tight">
-            Qualified Vacancy Leads & SMTP Dispatch Log env
+            Qualified Vacancy Requests & Local Activity Log
           </h1>
           <p className="text-[#F4F6F9]/70 text-sm leading-relaxed">
-            Every lead collected via the Sourcing Hub or Adewale's AI Chat has been successfully filed here. Review their localized operational specs alongside the exact SMTP mail logs sent to support.
+            Requests saved through this static demo are stored only in your browser. Review their operational details and the local-only transmission preview below.
           </p>
         </div>
 
@@ -125,21 +100,21 @@ export default function LeadsDashboardView() {
           className="px-4 py-2.5 bg-white/5 border border-white/10 text-white rounded-md text-xs font-mono uppercase tracking-wider hover:bg-white/10 hover:border-[#C9A23F]/50 transition-all cursor-pointer flex items-center gap-2"
         >
           <RefreshCw className={`w-3.5 h-3.5 text-[#C9A23F] ${isRefreshing ? 'animate-spin' : ''}`} />
-          <span>Reload Server Store</span>
+          <span>Reload Browser Store</span>
         </button>
       </div>
 
       {loading ? (
         <div className="text-center py-20 bg-white/5 border border-white/10 rounded-2xl">
           <div className="animate-spin rounded-full h-8 w-8 border-2 border-t-transparent border-[#C9A23F] mx-auto"></div>
-          <p className="text-xs text-[#F4F6F9]/40 mt-4 font-mono">Loading telemetry database...</p>
+          <p className="text-xs text-[#F4F6F9]/40 mt-4 font-mono">Loading browser-local records...</p>
         </div>
       ) : leads.length === 0 ? (
         <div className="text-center py-20 bg-white/5 border border-dashed border-white/10 rounded-2xl space-y-4">
           <Globe className="w-10 h-10 text-white/20 mx-auto" />
           <h3 className="font-bold text-white text-base">No registered vacancy leads yet</h3>
           <p className="text-xs text-[#F4F6F9]/60 max-w-md mx-auto">
-            Venture over to our <span className="text-[#C9A23F] font-semibold">AI Consult Partner</span> page to submit your company's strategic specifications!
+            Visit our <span className="text-[#C9A23F] font-semibold">HR & Regulatory Guide</span> page to save your company's strategic specifications in this browser.
           </p>
         </div>
       ) : (
@@ -255,12 +230,12 @@ export default function LeadsDashboardView() {
                   </div>
                 )}
 
-                {/* Simulated Email & SMTP Logs Terminal */}
+                {/* Browser-local request activity */}
                 <div className="space-y-3 bg-[#050D18] rounded-xl border border-white/10 p-5 font-mono overflow-x-auto text-[11px] leading-relaxed">
                   <div className="flex items-center justify-between border-b border-white/10 pb-3">
                     <span className="text-[10px] text-white/50 flex items-center gap-1.5 uppercase font-mono">
                       <Terminal className="w-3.5 h-3.5 text-green-400" />
-                      SMTP Mail Delivery Log console
+                      Browser-local Activity Log
                     </span>
                     <span className="text-[9px] px-2 py-0.5 bg-green-500/10 text-green-400 rounded-lg border border-green-500/20 font-bold tracking-widest uppercase">
                       SENT SUCCESS
@@ -286,7 +261,7 @@ export default function LeadsDashboardView() {
                 <FileText className="w-10 h-10 text-white/20 mx-auto" />
                 <h3 className="font-bold text-white text-base">Select a registered lead</h3>
                 <p className="text-xs text-[#F4F6F9]/60 max-w-sm mx-auto">
-                  Click on any company from the roster on the left to review their SMTP logs and calculated labor compliance strategy parameters.
+                  Click on any company from the roster on the left to review its local activity log and calculated labor compliance strategy parameters.
                 </p>
               </div>
             )}
