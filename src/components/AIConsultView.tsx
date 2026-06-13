@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Bot, Send, Sparkles, User, AlertCircle, Info, Mail, Building, Briefcase, ChevronRight, FileCheck, Check, CornerDownRight, ShieldCheck } from 'lucide-react';
+import { getAdvisorResponse, saveLead, type Lead } from '../services/staticData';
 
 interface ChatMessage {
   role: 'user' | 'model';
@@ -11,7 +12,7 @@ export default function AIConsultView() {
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       role: 'model',
-      text: "Hello! I am Adewale Coker, PrimeHub's Senior AI Operations Partner. I bring over 15 years of active recruiting and statutory payroll compliance experience across Lagos, Abuja, and Pan-Nigeria frameworks.\n\nWhether you need to outline competitive technical salary bands for software engineering roles in Nigeria, or decode PenCom Pension dual-deductions (10% employer, 8% employee) and ITF statutory limits, I am here to help.\n\nAs we discuss, I can help formulate your custom recruitment brief. What is your company name, and what active vacancy roles are you currently planning to fill?"
+      text: "Hello! I am Adewale Coker, PrimeHub's Digital Operations Guide. I bring over 15 years of active recruiting and statutory payroll compliance experience across Lagos, Abuja, and Pan-Nigeria frameworks.\n\nWhether you need to outline competitive technical salary bands for software engineering roles in Nigeria, or decode PenCom Pension dual-deductions (10% employer, 8% employee) and ITF statutory limits, I am here to help.\n\nAs we discuss, I can help formulate your custom recruitment brief. What is your company name, and what active vacancy roles are you currently planning to fill?"
     }
   ]);
   const [input, setInput] = useState<string>('');
@@ -27,7 +28,7 @@ export default function AIConsultView() {
     notes: ''
   });
   const [leadSubmittedSuccessfully, setLeadSubmittedSuccessfully] = useState<boolean>(false);
-  const [leadSubmissionDetails, setLeadSubmissionDetails] = useState<any | null>(null);
+  const [leadSubmissionDetails, setLeadSubmissionDetails] = useState<Lead | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -39,42 +40,15 @@ export default function AIConsultView() {
     scrollToBottom();
   }, [messages, loading]);
 
-  const handleSend = async (e: React.FormEvent) => {
+  const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || loading) return;
 
     const userMsg = input.trim();
+    const response = getAdvisorResponse(userMsg);
     setInput('');
-    setMessages((prev) => [...prev, { role: 'user', text: userMsg }]);
-    setLoading(true);
-
-    try {
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: userMsg,
-          history: messages
-        }),
-      });
-
-      const data = await response.json();
-      if (response.ok) {
-        setMessages((prev) => [...prev, { role: 'model', text: data.text || "I was unable to formulate a response. Please try again." }]);
-        
-        // Scan the message for possible lead info to pre-extract in the lead form!
-        extractLeadInfo(userMsg + " " + (data.text || ""));
-      } else {
-        setMessages((prev) => [...prev, { role: 'model', text: "Apologies, the connection is slightly unstable. Please rewrite your query." }]);
-      }
-    } catch (error) {
-      console.error(error);
-      setMessages((prev) => [...prev, { role: 'model', text: "I apologize, but we experienced an endpoint time-out. Make sure your local server is properly bound." }]);
-    } finally {
-      setLoading(false);
-    }
+    setMessages((prev) => [...prev, { role: 'user', text: userMsg }, { role: 'model', text: response }]);
+    extractLeadInfo(userMsg);
   };
 
   // Helper to extract email and possible roles from text to assist the user
@@ -91,52 +65,38 @@ export default function AIConsultView() {
     }
   };
 
-  const handleLeadSubmit = async (e: React.FormEvent) => {
+  const handleLeadSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!leadForm.clientName || !leadForm.email || !leadForm.targetRoles) {
       alert("Please provide at least Company Name, Contact Email, and Target Vacancy roles.");
       return;
     }
 
-    setLoading(true);
-    try {
-      const response = await fetch('/api/leads', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(leadForm),
-      });
+    setIsSubmittingLead(true);
+    const lead = saveLead(leadForm);
+    setLeadSubmittedSuccessfully(true);
+    setLeadSubmissionDetails(lead);
+    setMessages(prev => [...prev, {
+      role: 'model',
+      text: `🎯 REQUEST SAVED LOCALLY!
 
-      const data = await response.json();
-      if (response.ok) {
-        setLeadSubmittedSuccessfully(true);
-        setLeadSubmissionDetails(data.lead);
-        
-        // Push simulation message to the chat
-        setMessages(prev => [...prev, {
-          role: 'model',
-          text: `🎯 LEAD SECURED & SENT VIA EMAIL TO SUPPORT!\n\nI have compiled the strategic operational parameters for ${leadForm.clientName} and successfully dispatched a detailed recruitment proposal file to support@primehubhr.com.\n\nYou can review this simulated transmission, complete with SMTP transfer headers and state PAYE/NSITF compliance checks, by visiting our 'Leads Dashboard' page.`
-        }]);
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-      setIsSubmittingLead(false);
-    }
+I have compiled the strategic operational parameters for ${leadForm.clientName} and saved the recruitment brief in this browser.
+
+You can review the request on the Leads Dashboard page. To formally engage PrimeHub, contact the team using the details on this website.`
+    }]);
+    setIsSubmittingLead(false);
   };
 
   return (
     <div id="ai_consult_wrapper" className="space-y-12">
       {/* Editorial Header */}
       <div className="text-left max-w-3xl space-y-4">
-        <span className="text-xs uppercase tracking-widest font-semibold text-[#C9A23F] font-mono">15+ Years Experiential AI Agent</span>
+        <span className="text-xs uppercase tracking-widest font-semibold text-[#C9A23F] font-mono">Interactive Workforce Planning Guide</span>
         <h1 className="text-3xl sm:text-4xl font-bold font-sans text-white tracking-tight leading-tight">
-          Consult with Adewale Coker: AI HR & Regulatory Partner
+          Consult with Adewale Coker: HR & Regulatory Guide
         </h1>
         <p className="text-[#F4F6F9]/70 text-base leading-relaxed">
-          Ask delicate questions regarding PenCom pension structuring, state LIRS or FCT-IRS PAYE thresholds, and Industrial Training Fund (ITF) statutory filings. Use Adewale to guide your talent procurement strategy, then submit your lead details below.
+          Ask delicate questions regarding PenCom pension structuring, state LIRS or FCT-IRS PAYE thresholds, and Industrial Training Fund (ITF) statutory filings. Use Adewale to guide your talent procurement strategy, then save your request details below.
         </p>
       </div>
 
@@ -160,7 +120,7 @@ export default function AIConsultView() {
             
             <div className="hidden sm:flex items-center gap-1 bg-[#C9A23F]/10 px-2.5 py-1 rounded-sm border border-[#C9A23F]/20 text-[10px] font-mono text-[#C9A23F]">
               <Sparkles className="w-3 h-3 animate-pulse" />
-              <span>Gemini Pro Active</span>
+              <span>Static Advisor Active</span>
             </div>
           </div>
 
@@ -168,7 +128,7 @@ export default function AIConsultView() {
           <div className="mx-6 mt-4 p-3 bg-white/5 border border-white/10 rounded-lg text-xs flex items-start gap-2.5">
             <Info className="w-4 h-4 text-[#C9A23F] mt-0.5 flex-shrink-0" />
             <p className="text-[#F4F6F9]/70 leading-normal">
-              <span className="font-bold text-[#C9A23F]">Nigerian Compliance Audit Rules:</span> Our AI is pre-trained with complete PenCom dual contributions indices, 1% NSITF compensation rates, and state taxation criteria to qualify leads efficiently.
+              <span className="font-bold text-[#C9A23F]">Nigerian Compliance Audit Rules:</span> This static guide uses a curated set of recruitment and compliance topics to help you identify a practical next step.
             </p>
           </div>
 
@@ -239,7 +199,7 @@ export default function AIConsultView() {
               Support Dispatcher Link
             </h3>
             <p className="text-xs text-[#F4F6F9]/60 leading-relaxed">
-              When you officially submit this qualified lead form, the backend simulates sending an interactive HTML SMTP audit report directly to <span className="font-bold text-[#C9A23F]">support@primehubhr.com</span> and logs it in our files.
+              When you submit this request form, the static website saves the details only in your browser so you can review the brief on the Leads Dashboard.
             </p>
           </div>
 
@@ -256,14 +216,14 @@ export default function AIConsultView() {
                 <div className="space-y-1">
                   <h4 className="text-sm font-bold text-white">Lead Successfully Transmitted</h4>
                   <p className="text-[11px] text-[#F4F6F9]/70 leading-normal">
-                    The operational strategy proposal is dispatched to support. Simulated SMTP logs and mail queues are active.
+                    The operational strategy request is saved in this browser. No email or server request is sent.
                   </p>
                 </div>
               </div>
 
               {/* Collapsible details preview */}
               <div className="p-4 bg-[#0A1828] rounded-lg border border-white/5 space-y-2.5 text-xs font-mono">
-                <p className="text-[10px] text-[#C9A23F] font-bold uppercase tracking-widest">// SMTP Queue ID: {leadSubmissionDetails.id}</p>
+                <p className="text-[10px] text-[#C9A23F] font-bold uppercase tracking-widest">// Local Request ID: {leadSubmissionDetails.id}</p>
                 <div className="space-y-1 text-[#F4F6F9]/80 text-[11px]">
                   <p><span className="text-white/40">From:</span> {leadSubmissionDetails.emailSimulated.sender}</p>
                   <p><span className="text-white/40">To:</span> {leadSubmissionDetails.emailSimulated.recipient}</p>

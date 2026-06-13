@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Page } from '../types';
 import { Calendar, Briefcase, FileText, CheckCircle2, DollarSign, Clock, HelpCircle, GraduationCap, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { saveLead } from '../services/staticData';
 
 interface Phase {
   id: number;
@@ -29,41 +30,26 @@ export default function ProposalView() {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const handleRequestPricing = async (e: React.FormEvent) => {
+  const handleRequestPricing = (e: React.FormEvent) => {
     e.preventDefault();
     if (!clientName.trim() || !email.trim()) {
       setErrorMsg("Please provide both your Company Name and Work Email.");
       return;
     }
+
     setIsSubmitting(true);
     setErrorMsg(null);
-    try {
-      const response = await fetch('/api/leads', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          clientName: clientName.trim(),
-          email: email.trim(),
-          targetRoles: `${volume} x ${difficulty} Vacancies`,
-          location: 'Lagos',
-          roleVolume: volume,
-          industry: 'FinTech & Banking',
-          notes: `Requested confidential retainer pricing index for ${volume} ${difficulty} role(s). Include Handbook: ${includeHandbook ? 'YES' : 'NO'}. Include Compliance Audit: ${includeAudit ? 'YES' : 'NO'}.`
-        }),
-      });
-
-      if (response.ok) {
-        setIsPricingUnlocked(true);
-      } else {
-        setErrorMsg("Failed to dispatch pricing request. Please try again.");
-      }
-    } catch (err) {
-      setErrorMsg("Internal connection error. Please try again.");
-    } finally {
-      setIsSubmitting(false);
-    }
+    saveLead({
+      clientName: clientName.trim(),
+      email: email.trim(),
+      targetRoles: `${volume} x ${difficulty} Vacancies`,
+      location: 'Lagos',
+      roleVolume: volume,
+      industry: 'FinTech & Banking',
+      notes: `Requested confidential retainer pricing index for ${volume} ${difficulty} role(s). Include Handbook: ${includeHandbook ? 'YES' : 'NO'}. Include Compliance Audit: ${includeAudit ? 'YES' : 'NO'}.`,
+    });
+    setIsPricingUnlocked(true);
+    setIsSubmitting(false);
   };
 
   const phases: Phase[] = [

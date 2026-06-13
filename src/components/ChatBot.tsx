@@ -15,6 +15,7 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { getAdvisorResponse, saveLead } from '../services/staticData';
 
 interface ChatMessage {
   id: string;
@@ -29,7 +30,7 @@ export default function ChatBot() {
     {
       id: 'welcome',
       role: 'model',
-      text: "Hello! I am your PrimeHub AI People Systems Advisor. I can help answer questions regarding PenCom regulations, dual statutory deductions (10% Employer, 8% Employee), NSITF workmen compliance, or sourcing passive executives and engineering talent across Lagos and Abuja.\n\nCould you tell me what specific workforce or compliance challenges you are hoping to tackle today? \n\n(P.S. Please feel free to use our Rapid Lead form below at any point to register a priority support request!)"
+      text: "Hello! I am your PrimeHub People Systems Guide. I can help answer questions regarding PenCom regulations, dual statutory deductions (10% Employer, 8% Employee), NSITF workmen compliance, or sourcing passive executives and engineering talent across Lagos and Abuja.\n\nCould you tell me what specific workforce or compliance challenges you are hoping to tackle today? \n\n(P.S. Please feel free to use our Rapid Lead form below at any point to register a priority support request!)"
     }
   ]);
   const [userInput, setUserInput] = useState<string>('');
@@ -51,108 +52,48 @@ export default function ChatBot() {
     }
   }, [messages, isOpen, loading]);
 
-  const handleSendMessage = async (e?: React.FormEvent) => {
+  const handleSendMessage = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!userInput.trim()) return;
 
     const userMsgText = userInput.trim();
     setUserInput('');
-    
-    // Add user message to state
-    const userMsgId = `user-${Date.now()}`;
-    const newMessages: ChatMessage[] = [
-      ...messages,
-      { id: userMsgId, role: 'user', text: userMsgText }
-    ];
-    setMessages(newMessages);
-    setLoading(true);
-
-    try {
-      // Map history structure required by the /api/chat endpoint
-      const history = newMessages.slice(0, -1).map(m => ({
-        role: m.role,
-        text: m.text
-      }));
-
-      const res = await fetch('/api/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: userMsgText,
-          history: history
-        })
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        setMessages(prev => [
-          ...prev,
-          { id: `bot-${Date.now()}`, role: 'model', text: data.text || "I am processing your corporate guidelines setup..." }
-        ]);
-      } else {
-        setMessages(prev => [
-          ...prev,
-          { id: `bot-${Date.now()}`, role: 'model', text: "Apologies, my connectivity with the Lagos Advisory core was temporarily interrupted. Please feel free to register your staffing parameters directly using the 'Rapid Proposal Request' form above." }
-        ]);
-      }
-    } catch (err) {
-      setMessages(prev => [
-        ...prev,
-        { id: `bot-${Date.now()}`, role: 'model', text: "I am currently responding under Offline Expert Advisor Mode. In Nigeria, any company with 3 or more employee registries must contribute a minimum of 18% total baseline payroll to licensed PFAs under the Pension Reform Act of 2014.\n\nKindly fill out our Rapid Lead card below, and a senior human advisor will contact you within 24 hours." }
-      ]);
-    } finally {
-      setLoading(false);
-    }
+    setMessages((prev) => [
+      ...prev,
+      { id: `user-${Date.now()}`, role: 'user', text: userMsgText },
+      { id: `bot-${Date.now() + 1}`, role: 'model', text: getAdvisorResponse(userMsgText) },
+    ]);
   };
 
-  const handleLeadSubmit = async (e: React.FormEvent) => {
+  const handleLeadSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!companyName.trim() || !workEmail.trim() || !targetRoles.trim()) {
-      setErrorMessage("Kindly complete all lead parameters before dispatching.");
+      setErrorMessage("Kindly complete all lead parameters before saving.");
       return;
     }
 
     setIsLeadSubmitting(true);
     setErrorMessage(null);
+    saveLead({
+      clientName: companyName.trim(),
+      email: workEmail.trim(),
+      targetRoles: targetRoles.trim(),
+      location: 'Lagos/Abuja Hybrid',
+      roleVolume: 1,
+      industry: 'Technology',
+      notes: 'Source: Floating website advisor lead capture.',
+    });
+    setLeadSubmitted(true);
+    setMessages(prev => [...prev, {
+      id: `sys-${Date.now()}`,
+      role: 'model',
+      text: `🎉 Request saved successfully!
 
-    try {
-      const response = await fetch('/api/leads', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          clientName: companyName.trim(),
-          email: workEmail.trim(),
-          targetRoles: targetRoles.trim(),
-          location: 'Lagos/Abuja Hybrid',
-          roleVolume: 1,
-          industry: 'Technology',
-          notes: 'Source: Floating AI Chat Bot Lead Capture. Verified during active diagnostic consultation.'
-        })
-      });
+Thank you. I have saved **${companyName.trim()}**'s request in this browser for priority **${targetRoles.trim()}** hiring support.
 
-      if (response.ok) {
-        setLeadSubmitted(true);
-        // Add supportive message from Assistant
-        setMessages(prev => [
-          ...prev,
-          {
-            id: `sys-${Date.now()}`,
-            role: 'model',
-            text: `🎉 Lead Registered Successfully!\n\nThank you, I have logged **${companyName.trim()}**'s request in our secure lead database with contact email **${workEmail.trim()}** for priority **${targetRoles.trim()}** hiring support.\n\nOur Senior Partner has received this dossier. We will perform retroactive PenCom compliance checks prior to your discovery call.`
-          }
-        ]);
-      } else {
-        setErrorMessage("Failed to register. Please retry or email hello@primehubhr.com.ng");
-      }
-    } catch (err) {
-      setErrorMessage("Network error connecting to client registry. Try again.");
-    } finally {
-      setIsLeadSubmitting(false);
-    }
+Open the Leads Dashboard to review it, then contact PrimeHub to begin the engagement.`
+    }]);
+    setIsLeadSubmitting(false);
   };
 
   return (
@@ -175,7 +116,7 @@ export default function ChatBot() {
                   <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-green-500 border border-[#0C2440]"></span>
                 </div>
                 <div>
-                  <h3 className="font-bold text-xs text-white tracking-wide uppercase">AI Compliance Bot</h3>
+                  <h3 className="font-bold text-xs text-white tracking-wide uppercase">Workforce Guide</h3>
                   <p className="text-[9px] text-[#C9A23F] font-mono uppercase tracking-wider">PrimeHub Expert Advisor</p>
                 </div>
               </div>
